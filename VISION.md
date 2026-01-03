@@ -30,19 +30,13 @@ Le joueur peut acheter des indices en temps réel avec sa Bankroll globale.
 * **Le Sniper (Coût : Moyen) :** Révèle la **première lettre** du mot. (Extrêmement puissant pour éviter les pièges).
 * **L'Extra Life (Coût : Élevé) :** Ajoute un 5ème essai. Souvent utilisé en désespoir de cause pour ne pas perdre la mise, même si le profit devient négatif.
 
-## 4. DIFFICULTÉ (Les Decks)
-Le joueur choisit son "Deck" avant la partie pour modifier le risque.
 
-1.  **Deck Vanilla :** Mots courants. Multiplicateurs standards.
-2.  **Deck Chaos :** Mots rares, argot, conjugaisons chelous. Multiplicateurs doublés (x100, x10, x4...).
-3.  **Deck Sniper :** Commence avec 1 lettre révélée, mais seulement **3 essais** au total.
-
-## 5. LE "HOUSE EDGE" (Pourquoi c'est pas fair)
+## 4. LE "HOUSE EDGE" (Pourquoi c'est pas fair)
 Mécaniques invisibles pour assurer que le jeu reste difficile.
 * **Les pièges à rimes :** Fréquence élevée de mots type _ALLE (Balle, Salle, Dalle, Mâle) pour forcer le joueur à gaspiller des essais au hasard.
 * **Banlist :** Les mots trop faciles ou avec des lettres trop communes sont retirés de la base de données.
 
-## 6. DIRECTION ARTISTIQUE (Le "Juice")
+## 5. DIRECTION ARTISTIQUE (Le "Juice")
 Le jeu doit compenser sa simplicité graphique par du feedback violent.
 * **Visuel :** Effet CRT, Scanlines, Glitchs chromatiques.
 * **Feedback :**
