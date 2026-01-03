@@ -2,9 +2,9 @@
 
 A high-stakes Wordle variant built for the Gambling Jam. This project combines the classic word-guessing game with a persistent economy system where players bet real (simulated) currency on their performance.
 
-## 🏗 Architecture & Design
+## Architecture & Design
 
-This project is built with **TypeScript** and strictly follows **SOLID principles** to ensure a modular, testable, and durable codebase.
+This project is built with **TypeScript** and trieed its beast to be clean coded. (Its not that pretty for now)
 
 ### Key Components
 
@@ -19,7 +19,7 @@ This project is built with **TypeScript** and strictly follows **SOLID principle
 
 ---
 
-## 🔄 Game Flow & API Workflow
+## Game Flow & API Workflow
 
 To ensure fairness and stability, transactions are processed using a **"Deferred Settlement"** model.
 
@@ -68,15 +68,9 @@ To test the game logic in your terminal:
 ```bash
 # Run the CLI
 npm run build
-npm start
+npm start # to test the game with real keys
+
+npm start --mock # To test the game in dev mode
 ```
 
 *Note: The CLI prompts for a User Key and bet amount before each round.*
-
----
-
-## 🧩 SOLID Principles in Action
-
-- **SRP:** `EconomySystem` only does math, `GamblingApi` only does network requests.
-- **OCP:** New power-ups can be added by creating a new class implementing `IPowerUp` without touching `GameManager`.
-- **DIP:** `GameManager` receives its dependencies in its constructor, making it easy to mock for testing.
