@@ -3,19 +3,17 @@
 import { GAME_CONFIG } from "../data/GameConfig.js";
 
 export default class EconomySystem {
-
-  private bankroll: number;
+  private totalCost = 0; // Bets + PowerUps
+  private totalGain = 0; // Winnings
   private currentBet = 0;
 
-  constructor(startingMoney: number) {
-    if (!Number.isFinite(startingMoney) || startingMoney < 0) {
-      throw new Error("Starting money must be a non-negative number.");
-    }
-
-    this.bankroll = startingMoney;
+  reset(): void {
+    this.totalCost = 0;
+    this.totalGain = 0;
+    this.currentBet = 0;
   }
 
-  placeBet(amount: number): boolean {
+  placeBet(amount: number): void {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Bet amount must be a positive number.");
     }
@@ -28,48 +26,41 @@ export default class EconomySystem {
       throw new Error(`Bet amount cannot exceed ${GAME_CONFIG.BETTING.MAX_BET}.`);
     }
 
-    if (amount > this.bankroll) {
-      return false;
-    }
-
-    this.bankroll -= amount;
     this.currentBet = amount;
-    return true;
+    this.totalCost += amount;
   }
 
   calculatePayout(attemptNumber: number): number {
     return GAME_CONFIG.PAYOUT_MULTIPLIERS[attemptNumber] ?? 0;
   }
 
-  buyHint(cost: number): boolean {
+  recordPowerUpCost(cost: number): void {
     if (!Number.isFinite(cost) || cost <= 0) {
-      throw new Error("Hint cost must be a positive number.");
+      throw new Error("Power-up cost must be a positive number.");
     }
 
-    if (cost > this.bankroll) {
-      return false;
-    }
-
-    this.bankroll -= cost;
-    return true;
+    this.totalCost += cost;
   }
 
-  cashOut(multiplier: number): number {
+  recordWin(multiplier: number): number {
     if (!Number.isFinite(multiplier) || multiplier < 0) {
       throw new Error("Multiplier must be a non-negative number.");
     }
 
-    const payout = this.currentBet * multiplier;
-    this.bankroll += payout;
-    this.currentBet = 0;
-    return payout;
+    const winAmount = this.currentBet * multiplier;
+    this.totalGain += winAmount;
+    return winAmount;
   }
 
-  getBankroll(): number {
-    return this.bankroll;
+  getNetResult(): number {
+    return this.totalGain - this.totalCost;
   }
 
-  getCurrentBet(): number {
-    return this.currentBet;
+  getTotalCost(): number {
+    return this.totalCost;
+  }
+
+  getTotalGain(): number {
+    return this.totalGain;
   }
 }

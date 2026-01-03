@@ -1,5 +1,3 @@
-const BASE_URL = "https://api.gamblingjamaeglo.dev";
-
 export type WalletCategory = "utilisateur" | "jeu";
 
 export interface WalletResponse {
@@ -24,26 +22,43 @@ interface ApiErrorResponse {
 }
 
 export default class GamblingApi {
-  getGameKey(): string {
-    const gameKey = process.env.GAME_API_KEY;
+  private readonly baseUrl = "https://api.gamblingjamaeglo.dev";
+  private readonly gameKey: string;
+
+  constructor(gameKey: string) {
     if (!gameKey) {
-      throw new Error("GAME_API_KEY is missing from environment.");
+      throw new Error("GamblingApi requires a valid Game Key.");
     }
-
-    return gameKey;
+    this.gameKey = gameKey;
   }
 
-  async getWallet(category: WalletCategory, key: string): Promise<WalletResponse> {
-    const response = await fetch(`${BASE_URL}/portefeuille/${category}/${key}`);
+  getGameKey(): string {
+    return this.gameKey;
+  }
+
+  /**
+   * Retrieves the wallet balance of a user or a game. Returns the amount directly.
+  **/
+  async getWallet(category: WalletCategory, key: string): Promise<number> {
+    const response = await fetch(`${this.baseUrl}/portefeuille/${category}/${key}`);
+    
     if (!response.ok) {
-      await this.throwApiError(response);
+      await this.handleError(response);
     }
 
-    return (await response.json()) as WalletResponse;
+    const data = (await response.json()) as WalletResponse;
+    if (typeof data.portefeuille !== "number") {
+      throw new Error("Invalid response: 'portefeuille' field missing.");
+    }
+    
+    return data.portefeuille;
   }
 
-  async exchangeMoney(gameKey: string, request: ExchangeRequest): Promise<ExchangeResponse> {
-    const response = await fetch(`${BASE_URL}/echangerArgent/${gameKey}`, {
+  /**
+   * Executes a transaction between two entities. The game identified by gameKey must be involved.
+  **/
+  async exchangeMoney(request: ExchangeRequest): Promise<ExchangeResponse> {
+    const response = await fetch(`${this.baseUrl}/echangerArgent/${this.gameKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -52,13 +67,13 @@ export default class GamblingApi {
     });
 
     if (!response.ok) {
-      await this.throwApiError(response);
+      await this.handleError(response);
     }
 
     return (await response.json()) as ExchangeResponse;
   }
 
-  private async throwApiError(response: Response): Promise<never> {
+  private async handleError(response: Response): Promise<never> {
     let detail = `Request failed with status ${response.status}.`;
     try {
       const body = (await response.json()) as ApiErrorResponse;
@@ -69,6 +84,6 @@ export default class GamblingApi {
       // Keep default detail message.
     }
 
-    throw new Error(detail);
+    throw new Error(`Gambling API Error (${response.status}): ${detail}`);
   }
 }
