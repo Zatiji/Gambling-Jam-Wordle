@@ -9,11 +9,11 @@ export interface LetterResult {
 export type GameStatus = "playing" | "won" | "lost";
 
 export default class WordleEngine {
-
   private targetWord = "";
   private attempts = 0;
-  private readonly maxAttempts = 4;
+  private maxAttempts = 4;
   private gameStatus: GameStatus = "playing";
+  private gameStarted = false;
 
   startNewGame(word: string): void {
     const normalized = word.trim().toUpperCase();
@@ -24,9 +24,26 @@ export default class WordleEngine {
     this.targetWord = normalized;
     this.attempts = 0;
     this.gameStatus = "playing";
+    this.gameStarted = true;
+  }
+
+  setMaxAttempts(maxAttempts: number): void {
+    if (!Number.isInteger(maxAttempts) || maxAttempts <= 0) {
+      throw new Error("Max attempts must be a positive integer.");
+    }
+
+    this.maxAttempts = maxAttempts;
+  }
+
+  grantExtraAttempt(): void {
+    this.maxAttempts += 1;
   }
 
   submitGuess(guess: string): LetterResult[] {
+    if (!this.gameStarted) {
+      throw new Error("Game has not started.");
+    }
+
     if (this.gameStatus !== "playing") {
       throw new Error("Game is not active.");
     }
@@ -87,5 +104,29 @@ export default class WordleEngine {
 
   getStatus(): GameStatus {
     return this.gameStatus;
+  }
+
+  getMaxAttempts(): number {
+    return this.maxAttempts;
+  }
+
+  isGameActive(): boolean {
+    return this.gameStarted && this.gameStatus === "playing";
+  }
+
+  getFirstLetter(): string | null {
+    if (!this.targetWord) {
+      return null;
+    }
+
+    return this.targetWord[0];
+  }
+
+  hasLetter(letter: string): boolean {
+    if (!this.targetWord) {
+      return false;
+    }
+
+    return this.targetWord.includes(letter.toUpperCase());
   }
 }

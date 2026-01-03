@@ -8,6 +8,7 @@
     "start": "node dist/main_cli.js"
   },
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "typescript": "^5.4.0"
   }
 }

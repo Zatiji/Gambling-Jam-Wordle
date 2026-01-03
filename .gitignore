@@ -54,3 +54,7 @@ Temporary Items
 .ionide
 
 .env
+
+node_modules/
+dist/
+build/
