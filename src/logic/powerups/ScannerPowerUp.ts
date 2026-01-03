@@ -1,7 +1,7 @@
-import { IPowerUp, PowerUpExecutionResult } from "./IPowerUp.js";
+import { InterfacePowerUp, PowerUpExecutionResult } from "./InterfacePowerUp.js";
 import WordleEngine from "../WordleEngine.js";
 
-export class ScannerPowerUp implements IPowerUp {
+export class ScannerPowerUp implements InterfacePowerUp {
   execute(engine: WordleEngine, input?: string): PowerUpExecutionResult {
     const vowels = ["A", "E", "I", "O", "U", "Y"];
     if (!input) {

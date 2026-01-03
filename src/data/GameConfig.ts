@@ -18,7 +18,7 @@ export const GAME_CONFIG = {
     // Mapping des types vers les niveaux de coût par défaut
     TIERS: {
       scanner: "LEVEL_1",
-      sniper: "LEVEL_2",
+      lucky_shot: "LEVEL_2",
       extra_life: "LEVEL_3",
     } as const,
   },

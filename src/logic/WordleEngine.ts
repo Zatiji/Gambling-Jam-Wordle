@@ -122,6 +122,13 @@ export default class WordleEngine {
     return this.targetWord[0];
   }
 
+  getLetterAt(index: number): string | null {
+    if (!this.targetWord || index < 0 || index >= this.targetWord.length) {
+      return null;
+    }
+    return this.targetWord[index];
+  }
+
   hasLetter(letter: string): boolean {
     if (!this.targetWord) {
       return false;

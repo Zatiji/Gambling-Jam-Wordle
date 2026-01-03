@@ -4,6 +4,6 @@ export interface PowerUpExecutionResult {
   info: string;
 }
 
-export interface IPowerUp {
+export interface InterfacePowerUp {
   execute(engine: WordleEngine, input?: string): PowerUpExecutionResult;
 }

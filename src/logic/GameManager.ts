@@ -1,8 +1,8 @@
 import EconomySystem from "./EconomySystem.js";
 import WordleEngine, { LetterResult, GameStatus } from "./WordleEngine.js";
-import { IPowerUp } from "./powerups/IPowerUp.js";
+import { InterfacePowerUp } from "./powerups/InterfacePowerUp.js";
 
-export type PowerUpType = "scanner" | "sniper" | "extra_life";
+export type PowerUpType = "scanner" | "lucky_shot" | "extra_life";
 export type WordProvider = () => string;
 
 export interface RoundStartResult {
@@ -28,13 +28,13 @@ export default class GameManager {
   private readonly economy: EconomySystem;
   private readonly engine: WordleEngine;
   private readonly wordProvider: WordProvider;
-  private readonly powerUps: Map<PowerUpType, IPowerUp>;
+  private readonly powerUps: Map<PowerUpType, InterfacePowerUp>;
 
   constructor(
     economy: EconomySystem,
     engine: WordleEngine,
     wordProvider: WordProvider,
-    powerUps: Map<PowerUpType, IPowerUp>
+    powerUps: Map<PowerUpType, InterfacePowerUp>
   ) {
     this.economy = economy;
     this.engine = engine;
