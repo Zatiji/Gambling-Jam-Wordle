@@ -1,8 +1,9 @@
-declare const process: {
-  env: {
-    GAME_KEY?: string;
-    USER_KEY?: string;
-  };
-  argv: string[];
-  exit(code?: number): void;
-};
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      GAME_KEY?: string;
+    }
+  }
+}
+
+export {};

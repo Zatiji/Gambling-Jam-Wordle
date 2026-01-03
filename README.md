@@ -23,7 +23,8 @@ This project is built with **TypeScript** and strictly follows **SOLID principle
 
 To ensure fairness and stability, transactions are processed using a **"Deferred Settlement"** model.
 
-1.  **Start Round (Betting):**
+1.  **Start Round (User Key + Betting):**
+    - The player enters their **User Key** (required).
     - The player chooses a bet amount (e.g., $100).
     - **API Check:** The game checks the user's wallet balance via `GET /portefeuille`.
     - If funds are sufficient, the game starts. **No money is taken yet.**
@@ -65,11 +66,12 @@ Edit `src/data/GameConfig.ts` to adjust:
 To test the game logic in your terminal:
 
 ```bash
-# Set your environment variables (if needed) and run
-npx ts-node src/main_cli.ts
+# Run the CLI
+npm run build
+npm start
 ```
 
-*Note: The CLI needs to be updated to support the new async architecture.*
+*Note: The CLI prompts for a User Key and bet amount before each round.*
 
 ---
 

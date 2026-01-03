@@ -1,10 +1,9 @@
 
-
 import { GAME_CONFIG } from "../data/GameConfig.js";
 
 export default class EconomySystem {
-  private totalCost = 0; // Bets + PowerUps
-  private totalGain = 0; // Winnings
+  private totalCost = 0;
+  private totalGain = 0;
   private currentBet = 0;
 
   reset(): void {

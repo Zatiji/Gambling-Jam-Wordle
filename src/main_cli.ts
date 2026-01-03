@@ -12,8 +12,6 @@ import { InterfacePowerUp } from './logic/powerups/InterfacePowerUp.js';
 
 
 const GAME_KEY = process.env.GAME_KEY || "TEST_GAME_KEY"; 
-const USER_KEY = process.env.USER_KEY || "TEST_USER_KEY";
-
 const useMock = process.argv.includes('--mock');
 
 const economy = new EconomySystem(); 
@@ -38,8 +36,7 @@ const game = new GameManager(
     engine, 
     getRandomWord, 
     powerUps, 
-    api, 
-    USER_KEY
+    api
 );
 
 
@@ -48,15 +45,43 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+function ask(prompt: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => resolve(answer));
+  });
+}
+
+async function promptForUserKey(): Promise<string> {
+  while (true) {
+    const input = (await ask("Enter user key: ")).trim();
+    if (input.length > 0) {
+      return input;
+    }
+    console.log("User key is required.");
+  }
+}
+
+async function promptForBetAmount(): Promise<number> {
+  while (true) {
+    const input = (await ask("Enter bet amount: ")).trim();
+    const amount = Number(input);
+    if (Number.isFinite(amount) && amount > 0) {
+      return amount;
+    }
+    console.log("Bet amount must be a positive number.");
+  }
+}
+
 async function main() {
   console.log("=== GAMBLING JAM WORDLE CLI ===");
   console.log(`Game Key: ${GAME_KEY}`);
-  console.log(`User Key: ${USER_KEY}`);
   console.log(`Mode: ${useMock ? 'MOCK' : 'LIVE'}`);
 
-  // 1. Start Round
-  console.log("\nStarting round with 100$ bet...");
-  const startResult = await game.startRound(100);
+  
+  const userKey = await promptForUserKey();
+  const betAmount = await promptForBetAmount();
+  console.log(`\nStarting round with ${betAmount}$ bet...`);
+  const startResult = await game.startRound(userKey, betAmount);
 
   if (!startResult.betAccepted) {
     console.error("Failed to start round:", startResult.message);

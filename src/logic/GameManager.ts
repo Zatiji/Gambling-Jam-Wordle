@@ -31,31 +31,38 @@ export default class GameManager {
   private readonly wordProvider: WordProvider;
   private readonly powerUps: Map<PowerUpType, InterfacePowerUp>;
   private readonly api: GamblingApi;
-  private readonly userKey: string;
+  private currentUserKey: string | null = null;
 
   constructor(
     economy: EconomySystem,
     engine: WordleEngine,
     wordProvider: WordProvider,
     powerUps: Map<PowerUpType, InterfacePowerUp>,
-    api: GamblingApi,
-    userKey: string
+    api: GamblingApi
   ) {
     this.economy = economy;
     this.engine = engine;
     this.wordProvider = wordProvider;
     this.powerUps = powerUps;
     this.api = api;
-    this.userKey = userKey;
   }
 
-  async startRound(betAmount: number): Promise<RoundStartResult> {
+  async startRound(userKey: string, betAmount: number): Promise<RoundStartResult> {
     this.ensureNoActiveRound();
+    this.currentUserKey = null;
 
     this.economy.reset();
 
+    if (!userKey) {
+      return {
+        betAccepted: false,
+        maxAttempts: 0,
+        message: "User key is required to start a round.",
+      };
+    }
+
     try {
-      const balance = await this.api.getWallet("utilisateur", this.userKey);
+      const balance = await this.api.getWallet("utilisateur", userKey);
       if (balance < betAmount) {
         return {
           betAccepted: false,
@@ -84,6 +91,7 @@ export default class GameManager {
     const word = this.wordProvider();
     this.engine.startNewGame(word);
     this.engine.setMaxAttempts(4);
+    this.currentUserKey = userKey;
 
     return {
       betAccepted: true,
@@ -108,6 +116,8 @@ export default class GameManager {
         transactionMessage = await this.finalizeTransaction();
       } catch (e) {
         transactionMessage = `Transaction failed: ${(e as Error).message}`;
+      } finally {
+        this.currentUserKey = null;
       }
     }
 
@@ -146,6 +156,11 @@ export default class GameManager {
   // Calculates net result (Winnings - Costs) and executes API transaction.
   private async finalizeTransaction(): Promise<string> {
     const netResult = this.economy.getNetResult();
+    const userKey = this.currentUserKey;
+
+    if (!userKey) {
+      throw new Error("User key missing for transaction.");
+    }
 
     if (netResult === 0) {
       return "No money exchange (Break even).";
@@ -154,14 +169,14 @@ export default class GameManager {
     if (netResult > 0) {
       const response = await this.api.exchangeMoney({
         source: this.api.getGameKey(), 
-        destination: this.userKey,
+        destination: userKey,
         montant: netResult,
       });
       return `You won ${netResult}! ${response.message}`;
     } else {
       const amountToPay = Math.abs(netResult);
       const response = await this.api.exchangeMoney({
-        source: this.userKey,
+        source: userKey,
         destination: this.api.getGameKey(), 
         montant: amountToPay,
       });
