@@ -2,7 +2,7 @@
 
 **Concept :** Un Wordle rogue-like / gambling inspiré de *Balatro*.
 **Vibe :** High Risk / High Reward, Animations "Juicy", CRT, Screen Shake, Stress.
-**Tech :** Python + Pygame.
+**Tech :** TypeScript.
 
 ## 1. LES RÈGLES DU JEU (Core Loop)
 Le but est de créer un sentiment de contrôle, tout en gardant les stats en faveur de la "Maison".

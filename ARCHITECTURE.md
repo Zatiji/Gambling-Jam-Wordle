@@ -1,5 +1,5 @@
 
-**Objectif :** Créer le moteur logique du jeu (Backend logic) en Javascript pur (ES6 Modules), totalement découplé de l'interface graphique (HTML/DOM) pour éviter le "Spaghetti Code".
+**Objectif :** Créer le moteur logique du jeu (Backend logic) en TypeScript, totalement découplé de l'interface graphique (HTML/DOM) pour éviter le "Spaghetti Code".
 
 # Structure du Projet
 
@@ -89,7 +89,7 @@
 
 ## Contraintes Techniques
 
-1. **Javascript Moderne :** Utiliser les classes ES6 (`export default class...`)
+1. **TypeScript Moderne :** Utiliser les classes ES6 (`export default class...`)
 
 2. **Pas de DOM :** Aucune référence à `document`, `window` ou `html`. Le code doit pouvoir tourner dans un environnement Node.js ou la console du navigateur
 
@@ -262,7 +262,6 @@ MediaType: Application/JSON
   "detail": "Cette transaction aurait dû fonctionner, mais la phase de jeu n'est pas encore commencée. Il sera possible de jouer au jeu le 10 janvier"
 }
 ```
-
 
 
 

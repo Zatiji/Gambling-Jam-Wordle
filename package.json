@@ -1,0 +1,13 @@
+{
+  "name": "wordle-gamble",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main_cli.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
