@@ -1,5 +1,7 @@
 
 
+import { GAME_CONFIG } from "../data/GameConfig.js";
+
 export default class EconomySystem {
 
   private bankroll: number;
@@ -18,6 +20,14 @@ export default class EconomySystem {
       throw new Error("Bet amount must be a positive number.");
     }
 
+    if (amount < GAME_CONFIG.BETTING.MIN_BET) {
+      throw new Error(`Bet amount must be at least ${GAME_CONFIG.BETTING.MIN_BET}.`);
+    }
+
+    if (amount > GAME_CONFIG.BETTING.MAX_BET) {
+      throw new Error(`Bet amount cannot exceed ${GAME_CONFIG.BETTING.MAX_BET}.`);
+    }
+
     if (amount > this.bankroll) {
       return false;
     }
@@ -28,18 +38,7 @@ export default class EconomySystem {
   }
 
   calculatePayout(attemptNumber: number): number {
-    switch (attemptNumber) {
-      case 1:
-        return 50;
-      case 2:
-        return 5;
-      case 3:
-        return 2;
-      case 4:
-        return 0.5;
-      default:
-        return 0;
-    }
+    return GAME_CONFIG.PAYOUT_MULTIPLIERS[attemptNumber] ?? 0;
   }
 
   buyHint(cost: number): boolean {
