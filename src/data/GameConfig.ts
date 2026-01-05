@@ -8,6 +8,7 @@ export const GAME_CONFIG = {
     2: 5,   // Victoire en 2 coups
     3: 2,   // Victoire en 3 coups
     4: 0.5, // Victoire en 4 coups
+    5: 0.5, // Victoire en 5 coups (extra life)
   } as Record<number, number>,
   POWERUPS: {
     COSTS: {

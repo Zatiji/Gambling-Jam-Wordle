@@ -23,6 +23,7 @@ interface GameScreenState {
   balance: number;
   status: GameStatus;
   message: string;
+  extraLifeUsed: boolean;
 }
 
 type GameScreenAction =
@@ -31,6 +32,7 @@ type GameScreenAction =
   | { type: 'set_current_guess'; guess: string }
   | { type: 'append_guess'; guess: TileData[] }
   | { type: 'set_status'; status: GameStatus }
+  | { type: 'set_extra_life_used'; used: boolean }
   | { type: 'open_shop' }
   | { type: 'close_shop' };
 
@@ -41,6 +43,7 @@ const initialState: GameScreenState = {
   balance: 0,
   status: 'playing',
   message: '',
+  extraLifeUsed: false,
 };
 
 function gameScreenReducer(state: GameScreenState, action: GameScreenAction): GameScreenState {
@@ -59,6 +62,8 @@ function gameScreenReducer(state: GameScreenState, action: GameScreenAction): Ga
       };
     case 'set_status':
       return { ...state, status: action.status };
+    case 'set_extra_life_used':
+      return { ...state, extraLifeUsed: action.used };
     case 'open_shop':
       return { ...state, isShopOpen: true };
     case 'close_shop':
@@ -137,6 +142,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
 
   const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => {
     try {
+      if (type === 'extra_life' && state.extraLifeUsed) {
+        dispatch({ type: 'set_message', message: "Extra Life déjà utilisé pour cette partie." });
+        return;
+      }
+
       const tier = GAME_CONFIG.POWERUPS.TIERS[type];
       const expectedCost = GAME_CONFIG.POWERUPS.COSTS[tier];
       if (cost !== expectedCost) {
@@ -148,8 +158,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       if (result.success) {
         dispatch({ type: 'set_message', message: `Bonus utilisé: ${result.info}` });
         dispatch({ type: 'set_balance', balance: state.balance - cost });
-        // Special case for extra life: update grid/attempts if needed?
-        // Actually the backend engine handles maxAttempts.
+        if (type === 'extra_life') {
+          dispatch({ type: 'set_extra_life_used', used: true });
+        }
       } else {
         dispatch({ type: 'set_message', message: `Échec: ${result.info}` });
       }
@@ -189,6 +200,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   // Get current multiplier
   const attemptCount = state.guesses.length + 1;
   const multiplier = gameManager.getPayoutMultiplier(attemptCount);
+  const displayMaxAttempts = state.extraLifeUsed ? maxAttempts + 1 : maxAttempts;
+  const bonusRowIndex = state.extraLifeUsed ? displayMaxAttempts - 1 : undefined;
 
   return (
     <div id="game-screen">
@@ -204,7 +217,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
           {state.message}
         </div>
         
-        <WordleGrid guesses={displayGuesses} maxAttempts={maxAttempts} />
+        <WordleGrid
+          guesses={displayGuesses}
+          maxAttempts={displayMaxAttempts}
+          bonusRowIndex={bonusRowIndex}
+        />
 
         <div style={{ marginTop: '20px' }}>
           <VirtualKeyboard onKeyPress={handleKeyPress} letterStatuses={letterStatuses} />
@@ -214,7 +231,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       <ShopModal 
         isOpen={state.isShopOpen} 
         onClose={() => dispatch({ type: 'close_shop' })} 
-        onPurchase={handlePurchase} 
+        onPurchase={handlePurchase}
+        extraLifeAvailable={!state.extraLifeUsed}
       />
 
       <button 

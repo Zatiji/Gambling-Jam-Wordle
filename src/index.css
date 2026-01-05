@@ -171,6 +171,10 @@ input:focus { border-color: var(--crt-green); }
 .tile.correct { background: #538d4e; border-color: #538d4e; }
 .tile.present { background: #b59f3b; border-color: #b59f3b; }
 .tile.absent { background: #3a3a3c; border-color: #3a3a3c; }
+.row.bonus .tile:not(.correct):not(.present):not(.absent) {
+    background: #2b0f0f;
+    border-color: #4a1b1b;
+}
 
 .keyboard { display: flex; flex-direction: column; gap: 5px; width: 100%; align-items: center;}
 .key-row { display: flex; gap: 5px; }

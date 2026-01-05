@@ -5,9 +5,10 @@ interface ShopModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPurchase: (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => void;
+  extraLifeAvailable: boolean;
 }
 
-const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase }) => {
+const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extraLifeAvailable }) => {
   if (!isOpen) return null;
 
   const costs = GAME_CONFIG.POWERUPS.COSTS;
@@ -31,8 +32,16 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase }) =>
             SNIPER ({costs.LEVEL_2}$)
           </button>
           <button 
-            style={{ border: '1px solid #fff', padding: '10px', background: 'transparent', color: '#fff', cursor: 'pointer' }}
+            style={{
+              border: '1px solid #fff',
+              padding: '10px',
+              background: 'transparent',
+              color: '#fff',
+              cursor: extraLifeAvailable ? 'pointer' : 'not-allowed',
+              opacity: extraLifeAvailable ? 1 : 0.4,
+            }}
             onClick={() => onPurchase('extra_life', costs.LEVEL_3)}
+            disabled={!extraLifeAvailable}
           >
             EXTRA LIFE ({costs.LEVEL_3}$)
           </button>
