@@ -22,7 +22,8 @@ interface ApiErrorResponse {
 }
 
 export default class GamblingApi {
-  private readonly baseUrl = "https://api.gamblingjamaeglo.dev";
+  private readonly baseUrl =
+    import.meta.env.DEV ? "/api" : "https://api.gamblingjamaeglo.dev";
   private readonly gameKey: string;
 
   constructor(gameKey: string) {

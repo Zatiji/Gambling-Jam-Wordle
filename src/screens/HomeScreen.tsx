@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 
 interface HomeScreenProps {
   onPlay: (userKey: string, betAmount: number) => void;
+  apiMode: 'mock' | 'hybrid' | 'live';
+  onModeChange: (mode: 'mock' | 'hybrid' | 'live') => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay, apiMode, onModeChange }) => {
   const [userKey, setUserKey] = useState('');
   const [betAmount, setBetAmount] = useState(10);
 
@@ -37,6 +39,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay }) => {
           value={betAmount} 
           onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
         />
+      </div>
+
+      <div className="input-group">
+        <label>MODE API</label>
+        <select
+          value={apiMode}
+          onChange={(e) => onModeChange(e.target.value as 'mock' | 'hybrid' | 'live')}
+        >
+          <option value="mock">Mock (tout simulé)</option>
+          <option value="hybrid">Hybride (solde réel, transaction mock)</option>
+          <option value="live">Live (API réelle)</option>
+        </select>
       </div>
 
       <button className="btn-main" onClick={handlePlay}>JOUER</button>

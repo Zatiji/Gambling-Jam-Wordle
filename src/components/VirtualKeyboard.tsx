@@ -1,10 +1,12 @@
 import React from 'react';
+import type { LetterStatus } from './WordleGrid';
 
 interface VirtualKeyboardProps {
   onKeyPress: (key: string) => void;
+  letterStatuses: Record<string, LetterStatus | undefined>;
 }
 
-const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress }) => {
+const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, letterStatuses }) => {
   const rows = [
     ['A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M'],
@@ -17,7 +19,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress }) => {
         <div className="key-row" key={i}>
           {row.map((key) => (
             <div 
-              className={`key ${key.length > 1 ? 'wide' : ''}`} 
+              className={`key ${key.length > 1 ? 'wide' : ''} ${letterStatuses[key] || ''}`} 
               key={key}
               onClick={() => onKeyPress(key)}
             >

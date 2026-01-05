@@ -182,6 +182,12 @@ input:focus { border-color: var(--crt-green); }
 }
 .key:hover { background: #666; }
 .key.wide { padding: 10px 20px; }
+.key.correct { background: #538d4e; }
+.key.present { background: #b59f3b; }
+.key.absent {
+    background: #111;
+    color: #555;
+}
 
 /* --- MODAL SHOP --- */
 #shop-modal {

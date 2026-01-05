@@ -99,6 +99,18 @@ export default class GameManager {
     };
   }
 
+  async getUserBalance(userKey: string): Promise<number> {
+    if (!userKey) {
+      throw new Error("User key is required.");
+    }
+
+    return this.api.getWallet("utilisateur", userKey);
+  }
+
+  getPayoutMultiplier(attemptNumber: number): number {
+    return this.economy.calculatePayout(attemptNumber);
+  }
+
   async makeGuess(word: string): Promise<GuessResult> {
     this.ensureRoundActive();
     const letters = this.engine.submitGuess(word);

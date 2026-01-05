@@ -1,43 +1,18 @@
 import * as readline from 'readline';
-import GameManager, { PowerUpType } from './logic/GameManager.js';
-import WordleEngine from './logic/WordleEngine.js';
-import EconomySystem from './logic/EconomySystem.js';
-import GamblingApi from './services/GamblingApi.js';
-import MockGamblingApi from './services/MockGamblingApi.js'; // Import Mock
-import { getRandomWord } from './data/dictionary.js';
-import { LuckyShotPowerUp } from './logic/powerups/LuckyShotPowerUp.js';
-import { ScannerPowerUp } from './logic/powerups/ScannerPowerUp.js';
-import { ExtraLifePowerUp } from './logic/powerups/ExtraLifePowerUp.js';
-import { InterfacePowerUp } from './logic/powerups/InterfacePowerUp.js';
+import { createGameManager } from './services/createGameManager.js';
 
 
 const GAME_KEY = process.env.GAME_KEY || "TEST_GAME_KEY"; 
 const useMock = process.argv.includes('--mock');
 
-const economy = new EconomySystem(); 
-const engine = new WordleEngine();
-
-let api: GamblingApi;
-
 if (useMock) {
     console.log("\x1b[33m[WARNING] RUNNING IN MOCK MODE. NO REAL MONEY WILL BE EXCHANGED.\x1b[0m");
-    api = new MockGamblingApi(GAME_KEY);
-} else {
-    api = new GamblingApi(GAME_KEY);
 }
 
-const powerUps = new Map<PowerUpType, InterfacePowerUp>();
-powerUps.set("scanner", new ScannerPowerUp());
-powerUps.set("lucky_shot", new LuckyShotPowerUp());
-powerUps.set("extra_life", new ExtraLifePowerUp());
-
-const game = new GameManager(
-    economy, 
-    engine, 
-    getRandomWord, 
-    powerUps, 
-    api
-);
+const game = createGameManager({
+  gameKey: GAME_KEY,
+  useMockApi: useMock,
+});
 
 
 const rl = readline.createInterface({

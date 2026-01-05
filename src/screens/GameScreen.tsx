@@ -1,34 +1,82 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useReducer } from 'react';
 import StatsPanel from '../components/StatsPanel';
 import WordleGrid, { TileData, LetterStatus } from '../components/WordleGrid';
 import VirtualKeyboard from '../components/VirtualKeyboard';
 import ShopModal from '../components/ShopModal';
-import { gameManager } from '../services/gameInstance';
+import { GAME_CONFIG } from '../data/GameConfig';
+import type GameManager from '../logic/GameManager';
 
 interface GameScreenProps {
   userKey: string;
   bet: number;
   maxAttempts: number;
+  gameManager: GameManager;
   onReset: () => void;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, onReset }) => {
-  const [guesses, setGuesses] = useState<TileData[][]>([]);
-  const [currentGuess, setCurrentGuess] = useState('');
-  const [isShopOpen, setIsShopOpen] = useState(false);
-  const [balance, setBalance] = useState(0);
-  const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
-  const [message, setMessage] = useState('');
+type GameStatus = 'playing' | 'won' | 'lost';
+
+interface GameScreenState {
+  guesses: TileData[][];
+  currentGuess: string;
+  isShopOpen: boolean;
+  balance: number;
+  status: GameStatus;
+  message: string;
+}
+
+type GameScreenAction =
+  | { type: 'set_balance'; balance: number }
+  | { type: 'set_message'; message: string }
+  | { type: 'set_current_guess'; guess: string }
+  | { type: 'append_guess'; guess: TileData[] }
+  | { type: 'set_status'; status: GameStatus }
+  | { type: 'open_shop' }
+  | { type: 'close_shop' };
+
+const initialState: GameScreenState = {
+  guesses: [],
+  currentGuess: '',
+  isShopOpen: false,
+  balance: 0,
+  status: 'playing',
+  message: '',
+};
+
+function gameScreenReducer(state: GameScreenState, action: GameScreenAction): GameScreenState {
+  switch (action.type) {
+    case 'set_balance':
+      return { ...state, balance: action.balance };
+    case 'set_message':
+      return { ...state, message: action.message };
+    case 'set_current_guess':
+      return { ...state, currentGuess: action.guess };
+    case 'append_guess':
+      return {
+        ...state,
+        guesses: [...state.guesses, action.guess],
+        currentGuess: '',
+      };
+    case 'set_status':
+      return { ...state, status: action.status };
+    case 'open_shop':
+      return { ...state, isShopOpen: true };
+    case 'close_shop':
+      return { ...state, isShopOpen: false };
+    default:
+      return state;
+  }
+}
+
+const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, gameManager, onReset }) => {
+  const [state, dispatch] = useReducer(gameScreenReducer, initialState);
 
   // Fetch balance initially
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        // Accessing private api property via cast for simplicity in this prototype
-        // In a real app, we'd have a public method on gameManager
-        const api = (gameManager as any).api;
-        const bal = await api.getWallet("utilisateur", userKey);
-        setBalance(bal);
+        const bal = await gameManager.getUserBalance(userKey);
+        dispatch({ type: 'set_balance', balance: bal });
       } catch (e) {
         console.error("Failed to fetch balance", e);
       }
@@ -37,16 +85,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, onRe
   }, [userKey]);
 
   const handleKeyPress = useCallback(async (key: string) => {
-    if (status !== 'playing') return;
+    if (state.status !== 'playing') return;
 
     if (key === 'ENTER') {
-      if (currentGuess.length !== 5) {
-        setMessage("Le mot doit faire 5 lettres !");
+      if (state.currentGuess.length !== 5) {
+        dispatch({ type: 'set_message', message: "Le mot doit faire 5 lettres !" });
         return;
       }
 
       try {
-        const result = await gameManager.makeGuess(currentGuess.toLowerCase());
+        const result = await gameManager.makeGuess(state.currentGuess.toLowerCase());
         
         // Transform backend results to UI format
         const newGuess: TileData[] = result.letters.map(l => ({
@@ -54,24 +102,26 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, onRe
           status: l.status as LetterStatus
         }));
 
-        setGuesses(prev => [...prev, newGuess]);
-        setCurrentGuess('');
-        setStatus(result.status as any);
+        dispatch({ type: 'append_guess', guess: newGuess });
+        dispatch({ type: 'set_status', status: result.status as GameStatus });
 
         if (result.status !== 'playing') {
-          setMessage(result.transactionMessage || `Partie terminée: ${result.status}`);
+          dispatch({
+            type: 'set_message',
+            message: result.transactionMessage || `Partie terminée: ${result.status}`
+          });
         }
       } catch (e) {
-        setMessage((e as Error).message);
+        dispatch({ type: 'set_message', message: (e as Error).message });
       }
     } else if (key === 'DEL') {
-      setCurrentGuess(prev => prev.slice(0, -1));
+      dispatch({ type: 'set_current_guess', guess: state.currentGuess.slice(0, -1) });
     } else if (/^[A-Z]$/.test(key)) {
-      if (currentGuess.length < 5) {
-        setCurrentGuess(prev => prev + key);
+      if (state.currentGuess.length < 5) {
+        dispatch({ type: 'set_current_guess', guess: state.currentGuess + key });
       }
     }
-  }, [currentGuess, status]);
+  }, [state.currentGuess, state.status]);
 
   // Listen to physical keyboard
   useEffect(() => {
@@ -87,58 +137,83 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, onRe
 
   const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => {
     try {
-      const result = gameManager.purchasePowerUp(type, cost, currentGuess.toLowerCase());
+      const tier = GAME_CONFIG.POWERUPS.TIERS[type];
+      const expectedCost = GAME_CONFIG.POWERUPS.COSTS[tier];
+      if (cost !== expectedCost) {
+        dispatch({ type: 'set_message', message: "Coût invalide pour ce bonus." });
+        return;
+      }
+
+      const result = gameManager.purchasePowerUp(type, cost, state.currentGuess.toLowerCase());
       if (result.success) {
-        setMessage(`Bonus utilisé: ${result.info}`);
-        setBalance(prev => prev - cost);
+        dispatch({ type: 'set_message', message: `Bonus utilisé: ${result.info}` });
+        dispatch({ type: 'set_balance', balance: state.balance - cost });
         // Special case for extra life: update grid/attempts if needed?
         // Actually the backend engine handles maxAttempts.
       } else {
-        setMessage(`Échec: ${result.info}`);
+        dispatch({ type: 'set_message', message: `Échec: ${result.info}` });
       }
     } catch (e) {
-      setMessage((e as Error).message);
+      dispatch({ type: 'set_message', message: (e as Error).message });
     }
   };
 
   // Prepare the grid data (previous guesses + current guess)
-  const displayGuesses = [...guesses];
-  if (status === 'playing' && currentGuess.length > 0) {
-    const currentTyped: TileData[] = currentGuess.split('').map(char => ({
+  const displayGuesses = [...state.guesses];
+  if (state.status === 'playing' && state.currentGuess.length > 0) {
+    const currentTyped: TileData[] = state.currentGuess.split('').map(char => ({
       letter: char,
       status: 'empty'
     }));
     displayGuesses.push(currentTyped);
   }
 
+  const letterStatuses: Record<string, LetterStatus> = {};
+  const statusPriority: Record<LetterStatus, number> = {
+    correct: 3,
+    present: 2,
+    absent: 1,
+    empty: 0,
+  };
+
+  state.guesses.forEach((guess) => {
+    guess.forEach((tile) => {
+      const key = tile.letter.toUpperCase();
+      const current = letterStatuses[key];
+      if (!current || statusPriority[tile.status] > statusPriority[current]) {
+        letterStatuses[key] = tile.status;
+      }
+    });
+  });
+
   // Get current multiplier
-  const attemptCount = guesses.length + 1;
-  const multiplier = (gameManager as any).economy.calculatePayout(attemptCount);
+  const attemptCount = state.guesses.length + 1;
+  const multiplier = gameManager.getPayoutMultiplier(attemptCount);
 
   return (
     <div id="game-screen">
       <StatsPanel 
         bet={bet} 
-        balance={balance} 
+        balance={state.balance} 
         multiplier={multiplier} 
-        onOpenShop={() => setIsShopOpen(true)} 
+        onOpenShop={() => dispatch({ type: 'open_shop' })} 
       />
 
       <div className="right-panel">
         <div style={{ color: 'var(--neon-blue)', marginBottom: '10px', height: '20px' }}>
-          {message}
+          {state.message}
         </div>
         
         <WordleGrid guesses={displayGuesses} maxAttempts={maxAttempts} />
 
         <div style={{ marginTop: '20px' }}>
-          <VirtualKeyboard onKeyPress={handleKeyPress} />
+          <VirtualKeyboard onKeyPress={handleKeyPress} letterStatuses={letterStatuses} />
         </div>
       </div>
 
       <ShopModal 
-        isOpen={isShopOpen} 
-        onClose={() => setIsShopOpen(false)} 
+        isOpen={state.isShopOpen} 
+        onClose={() => dispatch({ type: 'close_shop' })} 
         onPurchase={handlePurchase} 
       />
 
