@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useReducer } from 'react';
+import React, { useEffect, useCallback, useReducer, useRef } from 'react';
 import StatsPanel from '../components/StatsPanel';
 import WordleGrid, { TileData, LetterStatus } from '../components/WordleGrid';
 import VirtualKeyboard from '../components/VirtualKeyboard';
@@ -46,6 +46,15 @@ const initialState: GameScreenState = {
   extraLifeUsed: false,
 };
 
+function triggerWinAnimation(rowElement: HTMLElement, isJackpot: boolean) {
+  const tiles = Array.from(rowElement.children) as HTMLElement[];
+  tiles.forEach((tile, index) => {
+    tile.classList.remove('wave', 'jackpot-win');
+    tile.style.animationDelay = `${index * 100}ms`;
+    tile.classList.add(isJackpot ? 'jackpot-win' : 'wave');
+  });
+}
+
 function gameScreenReducer(state: GameScreenState, action: GameScreenAction): GameScreenState {
   switch (action.type) {
     case 'set_balance':
@@ -75,6 +84,8 @@ function gameScreenReducer(state: GameScreenState, action: GameScreenAction): Ga
 
 const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, gameManager, onReset }) => {
   const [state, dispatch] = useReducer(gameScreenReducer, initialState);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const winAnimationRef = useRef<{ rowIndex: number; isJackpot: boolean } | null>(null);
 
   // Fetch balance initially
   useEffect(() => {
@@ -100,6 +111,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
 
       try {
         const result = await gameManager.makeGuess(state.currentGuess.toLowerCase());
+        const rowIndex = state.guesses.length;
+        const isJackpot = result.status === 'won' && rowIndex === 0;
         
         // Transform backend results to UI format
         const newGuess: TileData[] = result.letters.map(l => ({
@@ -115,6 +128,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
             type: 'set_message',
             message: result.transactionMessage || `Partie terminée: ${result.status}`
           });
+          if (result.status === 'won') {
+            winAnimationRef.current = { rowIndex, isJackpot };
+          }
         }
       } catch (e) {
         dispatch({ type: 'set_message', message: (e as Error).message });
@@ -139,6 +155,16 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyPress]);
+
+  useEffect(() => {
+    if (state.status !== 'won' || !winAnimationRef.current) return;
+    const { rowIndex, isJackpot } = winAnimationRef.current;
+    const row = gridRef.current?.querySelectorAll('.row')[rowIndex] as HTMLElement | undefined;
+    if (row) {
+      triggerWinAnimation(row, isJackpot);
+      winAnimationRef.current = null;
+    }
+  }, [state.status, state.guesses.length]);
 
   const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => {
     try {
@@ -217,11 +243,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
           {state.message}
         </div>
         
-        <WordleGrid
-          guesses={displayGuesses}
-          maxAttempts={displayMaxAttempts}
-          bonusRowIndex={bonusRowIndex}
-        />
+        <div ref={gridRef}>
+          <WordleGrid
+            guesses={displayGuesses}
+            maxAttempts={displayMaxAttempts}
+            bonusRowIndex={bonusRowIndex}
+          />
+        </div>
 
         <div style={{ marginTop: '20px' }}>
           <VirtualKeyboard onKeyPress={handleKeyPress} letterStatuses={letterStatuses} />

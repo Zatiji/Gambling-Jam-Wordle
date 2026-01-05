@@ -136,4 +136,8 @@ export default class WordleEngine {
 
     return this.targetWord.includes(letter.toUpperCase());
   }
+
+  getTargetWord(): string | null {
+    return this.targetWord || null;
+  }
 }

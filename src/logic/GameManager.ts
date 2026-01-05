@@ -111,6 +111,10 @@ export default class GameManager {
     return this.economy.calculatePayout(attemptNumber);
   }
 
+  getTargetWord(): string | null {
+    return this.engine.getTargetWord();
+  }
+
   async makeGuess(word: string): Promise<GuessResult> {
     this.ensureRoundActive();
     const letters = this.engine.submitGuess(word);
