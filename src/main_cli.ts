@@ -105,8 +105,11 @@ function askGuess() {
         
         if (result.status !== "playing") {
             console.log(`\nGAME OVER: ${result.status.toUpperCase()}`);
-            if (result.transactionMessage) {
-                console.log(`TRANSACTION: ${result.transactionMessage}`);
+            try {
+                const transactionMessage = await game.finalizeRound();
+                console.log(`TRANSACTION: ${transactionMessage}`);
+            } catch (e) {
+                console.log(`TRANSACTION ERROR: ${(e as Error).message}`);
             }
             rl.close();
         } else {

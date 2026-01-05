@@ -149,14 +149,15 @@ input:focus { border-color: var(--crt-green); }
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding-bottom: 18px;
 }
 
 .game-grid {
     display: grid;
     grid-template-rows: repeat(4, 1fr);
     gap: 10px;
-    margin-bottom: auto; /* Pousse le clavier vers le bas */
     margin-top: 20px;
+    margin-bottom: 22px;
 }
 .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .tile {
@@ -243,6 +244,93 @@ input:focus { border-color: var(--crt-green); }
     background: var(--neon-red);
     border: none; padding: 10px 20px;
     font-weight: bold; cursor: pointer;
+}
+
+/* --- MODAL RESULT --- */
+.result-modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.92);
+    z-index: 12;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.result-content {
+    background: var(--panel-bg);
+    border: 2px solid var(--neon-blue);
+    padding: 24px;
+    width: 85%;
+    max-width: 520px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(5, 217, 232, 0.4);
+    animation: result-slide-up 250ms ease-out;
+}
+.result-content.result-win {
+    background: #0f2616;
+}
+.result-content.result-loss {
+    background: #2b0f0f;
+    border-color: var(--neon-red);
+    box-shadow: 0 0 24px rgba(255, 7, 58, 0.45);
+}
+.result-content.result-jackpot-bg {
+    background: #3a2f06;
+    border-color: #ffd700;
+    box-shadow: 0 0 24px rgba(255, 215, 0, 0.5);
+}
+.result-title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px var(--neon-blue);
+}
+.result-jackpot {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+    margin-bottom: 12px;
+}
+.result-line {
+    margin: 6px 0;
+}
+.result-section {
+    margin: 14px 0;
+}
+.result-section-title {
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+.result-muted {
+    opacity: 0.7;
+}
+.result-total {
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin: 14px 0;
+}
+.result-message {
+    margin-bottom: 10px;
+    color: var(--neon-blue);
+}
+.result-action {
+    margin-top: 8px;
+    background: var(--neon-blue);
+    border: none;
+    padding: 12px 22px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #000;
+}
+.result-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes result-slide-up {
+    0% { transform: translateY(60px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes pulse { 50% { opacity: 0.7; transform: scale(0.95); } }

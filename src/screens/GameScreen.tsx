@@ -3,8 +3,10 @@ import StatsPanel from '../components/StatsPanel';
 import WordleGrid, { TileData, LetterStatus } from '../components/WordleGrid';
 import VirtualKeyboard from '../components/VirtualKeyboard';
 import ShopModal from '../components/ShopModal';
+import ResultModal from '../components/ResultModal';
 import { GAME_CONFIG } from '../data/GameConfig';
 import type GameManager from '../logic/GameManager';
+import type { PowerUpType } from '../logic/GameManager';
 
 interface GameScreenProps {
   userKey: string;
@@ -24,6 +26,12 @@ interface GameScreenState {
   status: GameStatus;
   message: string;
   extraLifeUsed: boolean;
+  purchases: { type: PowerUpType; cost: number }[];
+  showResultModal: boolean;
+  isJackpot: boolean;
+  settlementMessage: string;
+  isFinalizing: boolean;
+  isSettled: boolean;
 }
 
 type GameScreenAction =
@@ -33,6 +41,12 @@ type GameScreenAction =
   | { type: 'append_guess'; guess: TileData[] }
   | { type: 'set_status'; status: GameStatus }
   | { type: 'set_extra_life_used'; used: boolean }
+  | { type: 'add_purchase'; purchase: { type: PowerUpType; cost: number } }
+  | { type: 'show_result_modal'; show: boolean }
+  | { type: 'set_jackpot'; isJackpot: boolean }
+  | { type: 'set_settlement_message'; message: string }
+  | { type: 'set_finalizing'; isFinalizing: boolean }
+  | { type: 'set_settled'; isSettled: boolean }
   | { type: 'open_shop' }
   | { type: 'close_shop' };
 
@@ -44,6 +58,12 @@ const initialState: GameScreenState = {
   status: 'playing',
   message: '',
   extraLifeUsed: false,
+  purchases: [],
+  showResultModal: false,
+  isJackpot: false,
+  settlementMessage: '',
+  isFinalizing: false,
+  isSettled: false,
 };
 
 function triggerWinAnimation(rowElement: HTMLElement, isJackpot: boolean) {
@@ -73,6 +93,18 @@ function gameScreenReducer(state: GameScreenState, action: GameScreenAction): Ga
       return { ...state, status: action.status };
     case 'set_extra_life_used':
       return { ...state, extraLifeUsed: action.used };
+    case 'add_purchase':
+      return { ...state, purchases: [...state.purchases, action.purchase] };
+    case 'show_result_modal':
+      return { ...state, showResultModal: action.show };
+    case 'set_jackpot':
+      return { ...state, isJackpot: action.isJackpot };
+    case 'set_settlement_message':
+      return { ...state, settlementMessage: action.message };
+    case 'set_finalizing':
+      return { ...state, isFinalizing: action.isFinalizing };
+    case 'set_settled':
+      return { ...state, isSettled: action.isSettled };
     case 'open_shop':
       return { ...state, isShopOpen: true };
     case 'close_shop':
@@ -86,6 +118,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   const [state, dispatch] = useReducer(gameScreenReducer, initialState);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const winAnimationRef = useRef<{ rowIndex: number; isJackpot: boolean } | null>(null);
+  const resultTimerRef = useRef<number | null>(null);
 
   // Fetch balance initially
   useEffect(() => {
@@ -130,6 +163,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
           });
           if (result.status === 'won') {
             winAnimationRef.current = { rowIndex, isJackpot };
+            dispatch({ type: 'set_jackpot', isJackpot });
+          } else {
+            dispatch({ type: 'set_jackpot', isJackpot: false });
           }
         }
       } catch (e) {
@@ -166,6 +202,39 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     }
   }, [state.status, state.guesses.length]);
 
+  useEffect(() => {
+    if (state.showResultModal) return;
+
+    if (state.status === 'won') {
+      const baseDuration = state.isJackpot ? 900 : 600;
+      const staggerTotal = 100 * 4;
+      const totalDelay = baseDuration + staggerTotal;
+      if (resultTimerRef.current) {
+        window.clearTimeout(resultTimerRef.current);
+      }
+      resultTimerRef.current = window.setTimeout(() => {
+        dispatch({ type: 'show_result_modal', show: true });
+      }, totalDelay);
+    } else if (state.status === 'lost') {
+      dispatch({ type: 'show_result_modal', show: true });
+    }
+
+    return () => {
+      if (resultTimerRef.current) {
+        window.clearTimeout(resultTimerRef.current);
+        resultTimerRef.current = null;
+      }
+    };
+  }, [state.status, state.isJackpot, state.showResultModal]);
+
+  useEffect(() => {
+    if (!state.showResultModal || state.isFinalizing || state.isSettled) return;
+    const timer = window.setTimeout(() => {
+      handleFinalize();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [state.showResultModal, state.isFinalizing, state.isSettled]);
+
   const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => {
     try {
       if (type === 'extra_life' && state.extraLifeUsed) {
@@ -184,6 +253,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       if (result.success) {
         dispatch({ type: 'set_message', message: `Bonus utilisé: ${result.info}` });
         dispatch({ type: 'set_balance', balance: state.balance - cost });
+        dispatch({ type: 'add_purchase', purchase: { type, cost } });
         if (type === 'extra_life') {
           dispatch({ type: 'set_extra_life_used', used: true });
         }
@@ -228,6 +298,27 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   const multiplier = gameManager.getPayoutMultiplier(attemptCount);
   const displayMaxAttempts = state.extraLifeUsed ? maxAttempts + 1 : maxAttempts;
   const bonusRowIndex = state.extraLifeUsed ? displayMaxAttempts - 1 : undefined;
+  const purchasesTotal = state.purchases.reduce((total, item) => total + item.cost, 0);
+  const winMultiplier = state.status === 'won' ? gameManager.getPayoutMultiplier(state.guesses.length) : 0;
+  const winAmount = state.status === 'won' ? bet * winMultiplier : 0;
+  const totalCost = bet + purchasesTotal;
+  const netTotal = winAmount - totalCost;
+
+  const handleFinalize = async () => {
+    if (state.isFinalizing || state.isSettled) return;
+    dispatch({ type: 'set_finalizing', isFinalizing: true });
+    try {
+      const message = await gameManager.finalizeRound();
+      dispatch({ type: 'set_settlement_message', message });
+      dispatch({ type: 'set_settled', isSettled: true });
+      const bal = await gameManager.getUserBalance(userKey);
+      dispatch({ type: 'set_balance', balance: bal });
+    } catch (e) {
+      dispatch({ type: 'set_settlement_message', message: `Transaction failed: ${(e as Error).message}` });
+    } finally {
+      dispatch({ type: 'set_finalizing', isFinalizing: false });
+    }
+  };
 
   return (
     <div id="game-screen">
@@ -261,6 +352,22 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         onClose={() => dispatch({ type: 'close_shop' })} 
         onPurchase={handlePurchase}
         extraLifeAvailable={!state.extraLifeUsed}
+      />
+
+      <ResultModal
+        isOpen={state.showResultModal}
+        status={state.status === 'won' ? 'won' : 'lost'}
+        isJackpot={state.isJackpot}
+        bet={bet}
+        multiplier={winMultiplier}
+        winAmount={winAmount}
+        totalCost={totalCost}
+        netTotal={netTotal}
+        purchases={state.purchases}
+        onFinalize={onReset}
+        isFinalizing={state.isFinalizing}
+        settlementMessage={state.settlementMessage}
+        isSettled={state.isSettled}
       />
 
       <button 

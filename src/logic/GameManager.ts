@@ -32,6 +32,7 @@ export default class GameManager {
   private readonly powerUps: Map<PowerUpType, InterfacePowerUp>;
   private readonly api: GamblingApi;
   private currentUserKey: string | null = null;
+  private transactionFinalized = false;
 
   constructor(
     economy: EconomySystem,
@@ -50,6 +51,7 @@ export default class GameManager {
   async startRound(userKey: string, betAmount: number): Promise<RoundStartResult> {
     this.ensureNoActiveRound();
     this.currentUserKey = null;
+    this.transactionFinalized = false;
 
     this.economy.reset();
 
@@ -120,20 +122,11 @@ export default class GameManager {
     const letters = this.engine.submitGuess(word);
     const status = this.engine.getStatus();
     let payout = 0;
-    let transactionMessage = undefined;
 
     if (status === "won" || status === "lost") {
       if (status === "won") {
         const multiplier = this.economy.calculatePayout(this.engine.getAttempts());
         payout = this.economy.recordWin(multiplier);
-      }
-      
-      try {
-        transactionMessage = await this.finalizeTransaction();
-      } catch (e) {
-        transactionMessage = `Transaction failed: ${(e as Error).message}`;
-      } finally {
-        this.currentUserKey = null;
       }
     }
 
@@ -141,8 +134,25 @@ export default class GameManager {
       letters,
       status,
       payout,
-      transactionMessage,
     };
+  }
+
+  async finalizeRound(): Promise<string> {
+    if (this.engine.getStatus() === "playing") {
+      throw new Error("Round is still in progress.");
+    }
+    if (this.transactionFinalized) {
+      throw new Error("Transaction already finalized.");
+    }
+
+    try {
+      const message = await this.finalizeTransaction();
+      this.transactionFinalized = true;
+      this.currentUserKey = null;
+      return message;
+    } catch (e) {
+      throw e;
+    }
   }
 
   purchasePowerUp(type: PowerUpType, cost: number, currentGuess?: string): PowerUpResult {
