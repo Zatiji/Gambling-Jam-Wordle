@@ -8,6 +8,10 @@
 - Styles: `src/index.css`.
 - Build output goes to `dist/`.
 
+## Agent Workflow
+- Always ask for explicit permission before making code changes.
+- Summarize the intended edits before requesting approval.
+
 ## Build, Test, and Development Commands
 - `npm run dev`: start the Vite dev server for the React UI.
 - `npm run build`: type-check and build the web app.

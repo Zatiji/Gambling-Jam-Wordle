@@ -27,6 +27,10 @@ interface GameScreenState {
   message: string;
   extraLifeUsed: boolean;
   purchases: { type: PowerUpType; cost: number }[];
+  scannerReveals: Record<string, LetterStatus>;
+  twitchTile: { row: number; col: number; key: number } | null;
+  revealTile: { row: number; col: number; key: number } | null;
+  isRevealing: boolean;
   showResultModal: boolean;
   isJackpot: boolean;
   settlementMessage: string;
@@ -42,6 +46,11 @@ type GameScreenAction =
   | { type: 'set_status'; status: GameStatus }
   | { type: 'set_extra_life_used'; used: boolean }
   | { type: 'add_purchase'; purchase: { type: PowerUpType; cost: number } }
+  | { type: 'set_scanner_reveal'; letter: string; status: LetterStatus }
+  | { type: 'set_twitch_tile'; row: number; col: number }
+  | { type: 'set_reveal_tile'; row: number; col: number }
+  | { type: 'set_revealing'; isRevealing: boolean }
+  | { type: 'set_tile_status'; row: number; col: number; status: LetterStatus }
   | { type: 'show_result_modal'; show: boolean }
   | { type: 'set_jackpot'; isJackpot: boolean }
   | { type: 'set_settlement_message'; message: string }
@@ -59,6 +68,10 @@ const initialState: GameScreenState = {
   message: '',
   extraLifeUsed: false,
   purchases: [],
+  scannerReveals: {},
+  twitchTile: null,
+  revealTile: null,
+  isRevealing: false,
   showResultModal: false,
   isJackpot: false,
   settlementMessage: '',
@@ -95,6 +108,45 @@ function gameScreenReducer(state: GameScreenState, action: GameScreenAction): Ga
       return { ...state, extraLifeUsed: action.used };
     case 'add_purchase':
       return { ...state, purchases: [...state.purchases, action.purchase] };
+    case 'set_scanner_reveal':
+      return {
+        ...state,
+        scannerReveals: {
+          ...state.scannerReveals,
+          [action.letter]: action.status,
+        },
+      };
+    case 'set_twitch_tile':
+      return {
+        ...state,
+        twitchTile: {
+          row: action.row,
+          col: action.col,
+          key: (state.twitchTile?.key ?? 0) + 1,
+        },
+      };
+    case 'set_reveal_tile':
+      return {
+        ...state,
+        revealTile: {
+          row: action.row,
+          col: action.col,
+          key: (state.revealTile?.key ?? 0) + 1,
+        },
+      };
+    case 'set_revealing':
+      return { ...state, isRevealing: action.isRevealing };
+    case 'set_tile_status':
+      return {
+        ...state,
+        guesses: state.guesses.map((row, rowIndex) =>
+          rowIndex === action.row
+            ? row.map((tile, colIndex) =>
+                colIndex === action.col ? { ...tile, status: action.status } : tile
+              )
+            : row
+        ),
+      };
     case 'show_result_modal':
       return { ...state, showResultModal: action.show };
     case 'set_jackpot':
@@ -119,6 +171,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   const gridRef = useRef<HTMLDivElement | null>(null);
   const winAnimationRef = useRef<{ rowIndex: number; isJackpot: boolean } | null>(null);
   const resultTimerRef = useRef<number | null>(null);
+  const revealTimersRef = useRef<number[]>([]);
 
   // Fetch balance initially
   useEffect(() => {
@@ -134,7 +187,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   }, [userKey]);
 
   const handleKeyPress = useCallback(async (key: string) => {
-    if (state.status !== 'playing') return;
+    if (state.status !== 'playing' || state.isRevealing) return;
 
     if (key === 'ENTER') {
       if (state.currentGuess.length !== 5) {
@@ -150,24 +203,38 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         // Transform backend results to UI format
         const newGuess: TileData[] = result.letters.map(l => ({
           letter: l.letter.toUpperCase(),
-          status: l.status as LetterStatus
+          status: 'empty'
         }));
 
         dispatch({ type: 'append_guess', guess: newGuess });
-        dispatch({ type: 'set_status', status: result.status as GameStatus });
+        dispatch({ type: 'set_revealing', isRevealing: true });
+        revealTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+        revealTimersRef.current = [];
 
-        if (result.status !== 'playing') {
-          dispatch({
-            type: 'set_message',
-            message: result.transactionMessage || `Partie terminée: ${result.status}`
-          });
-          if (result.status === 'won') {
-            winAnimationRef.current = { rowIndex, isJackpot };
-            dispatch({ type: 'set_jackpot', isJackpot });
-          } else {
-            dispatch({ type: 'set_jackpot', isJackpot: false });
-          }
-        }
+        const revealDelay = 140;
+        result.letters.forEach((letter, index) => {
+          const timer = window.setTimeout(() => {
+            dispatch({ type: 'set_reveal_tile', row: rowIndex, col: index });
+            dispatch({ type: 'set_tile_status', row: rowIndex, col: index, status: letter.status as LetterStatus });
+            if (index === result.letters.length - 1) {
+              dispatch({ type: 'set_status', status: result.status as GameStatus });
+              dispatch({ type: 'set_revealing', isRevealing: false });
+              if (result.status !== 'playing') {
+                dispatch({
+                  type: 'set_message',
+                  message: result.transactionMessage || `Partie terminée: ${result.status}`
+                });
+                if (result.status === 'won') {
+                  winAnimationRef.current = { rowIndex, isJackpot };
+                  dispatch({ type: 'set_jackpot', isJackpot });
+                } else {
+                  dispatch({ type: 'set_jackpot', isJackpot: false });
+                }
+              }
+            }
+          }, index * revealDelay);
+          revealTimersRef.current.push(timer);
+        });
       } catch (e) {
         dispatch({ type: 'set_message', message: (e as Error).message });
       }
@@ -175,10 +242,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       dispatch({ type: 'set_current_guess', guess: state.currentGuess.slice(0, -1) });
     } else if (/^[A-Z]$/.test(key)) {
       if (state.currentGuess.length < 5) {
+        dispatch({ type: 'set_twitch_tile', row: state.guesses.length, col: state.currentGuess.length });
         dispatch({ type: 'set_current_guess', guess: state.currentGuess + key });
       }
     }
-  }, [state.currentGuess, state.status]);
+  }, [state.currentGuess, state.status, state.isRevealing, state.guesses.length]);
 
   // Listen to physical keyboard
   useEffect(() => {
@@ -191,6 +259,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyPress]);
+
+  useEffect(() => {
+    return () => {
+      revealTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      revealTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (state.status !== 'won' || !winAnimationRef.current) return;
@@ -235,7 +310,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     return () => window.clearTimeout(timer);
   }, [state.showResultModal, state.isFinalizing, state.isSettled]);
 
-  const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number) => {
+  const handlePurchase = (type: 'scanner' | 'lucky_shot' | 'extra_life', cost: number, input?: string) => {
     try {
       if (type === 'extra_life' && state.extraLifeUsed) {
         dispatch({ type: 'set_message', message: "Extra Life déjà utilisé pour cette partie." });
@@ -249,13 +324,25 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         return;
       }
 
-      const result = gameManager.purchasePowerUp(type, cost, state.currentGuess.toLowerCase());
+      const normalizedInput = input ? input.trim().toUpperCase() : '';
+      const result = gameManager.purchasePowerUp(
+        type,
+        cost,
+        type === 'scanner' ? normalizedInput : state.currentGuess.toLowerCase()
+      );
       if (result.success) {
         dispatch({ type: 'set_message', message: `Bonus utilisé: ${result.info}` });
         dispatch({ type: 'set_balance', balance: state.balance - cost });
         dispatch({ type: 'add_purchase', purchase: { type, cost } });
         if (type === 'extra_life') {
           dispatch({ type: 'set_extra_life_used', used: true });
+        }
+        if (type === 'scanner' && /^[A-Z]$/.test(normalizedInput)) {
+          const target = gameManager.getTargetWord();
+          if (target) {
+            const status: LetterStatus = target.toUpperCase().includes(normalizedInput) ? 'present' : 'absent';
+            dispatch({ type: 'set_scanner_reveal', letter: normalizedInput, status });
+          }
         }
       } else {
         dispatch({ type: 'set_message', message: `Échec: ${result.info}` });
@@ -275,7 +362,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     displayGuesses.push(currentTyped);
   }
 
-  const letterStatuses: Record<string, LetterStatus> = {};
+  const letterStatuses: Record<string, LetterStatus> = { ...state.scannerReveals };
   const statusPriority: Record<LetterStatus, number> = {
     correct: 3,
     present: 2,
@@ -303,6 +390,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
   const winAmount = state.status === 'won' ? bet * winMultiplier : 0;
   const totalCost = bet + purchasesTotal;
   const netTotal = winAmount - totalCost;
+  const targetWord = gameManager.getTargetWord();
 
   const handleFinalize = async () => {
     if (state.isFinalizing || state.isSettled) return;
@@ -339,6 +427,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
             guesses={displayGuesses}
             maxAttempts={displayMaxAttempts}
             bonusRowIndex={bonusRowIndex}
+            twitchTile={state.twitchTile}
+            revealTile={state.revealTile}
           />
         </div>
 
@@ -358,6 +448,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         isOpen={state.showResultModal}
         status={state.status === 'won' ? 'won' : 'lost'}
         isJackpot={state.isJackpot}
+        targetWord={targetWord}
         bet={bet}
         multiplier={winMultiplier}
         winAmount={winAmount}

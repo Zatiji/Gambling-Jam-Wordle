@@ -43,17 +43,35 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay, apiMode, onModeChange }
 
       <div className="input-group">
         <label>MODE API</label>
-        <select
-          value={apiMode}
-          onChange={(e) => onModeChange(e.target.value as 'mock' | 'hybrid' | 'live')}
-        >
-          <option value="mock">Mock (tout simulé)</option>
-          <option value="hybrid">Hybride (solde réel, transaction mock)</option>
-          <option value="live">Live (API réelle)</option>
-        </select>
+        <div className="api-mode-grid">
+          <button
+            type="button"
+            className={`api-mode-tile ${apiMode === 'mock' ? 'active' : ''}`}
+            onClick={() => onModeChange('mock')}
+          >
+            Mock
+            <span>tout simulé</span>
+          </button>
+          <button
+            type="button"
+            className={`api-mode-tile ${apiMode === 'hybrid' ? 'active' : ''}`}
+            onClick={() => onModeChange('hybrid')}
+          >
+            Hybride
+            <span>solde réel, transaction mock</span>
+          </button>
+          <button
+            type="button"
+            className={`api-mode-tile ${apiMode === 'live' ? 'active' : ''}`}
+            onClick={() => onModeChange('live')}
+          >
+            Live
+            <span>API réelle</span>
+          </button>
+        </div>
       </div>
 
-      <button className="btn-main" onClick={handlePlay}>JOUER</button>
+      <button className="btn-main btn-main-shop" onClick={handlePlay}>JOUER</button>
     </div>
   );
 };

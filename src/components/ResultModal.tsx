@@ -10,6 +10,7 @@ interface ResultModalProps {
   isOpen: boolean;
   status: 'won' | 'lost';
   isJackpot: boolean;
+  targetWord: string | null;
   bet: number;
   multiplier: number;
   winAmount: number;
@@ -32,6 +33,7 @@ const ResultModal: React.FC<ResultModalProps> = ({
   isOpen,
   status,
   isJackpot,
+  targetWord,
   bet,
   multiplier,
   winAmount,
@@ -66,6 +68,9 @@ const ResultModal: React.FC<ResultModalProps> = ({
           <div className="result-jackpot">JACKPOT !!!!!</div>
         )}
 
+        <div className="result-line">
+          Mot: {targetWord ? targetWord.toUpperCase() : '-'}
+        </div>
         <div className="result-line">Mise: ${bet.toFixed(2)}</div>
         <div className="result-line">Multiplicateur: x{multiplier.toFixed(2)}</div>
         <div className="result-line">Retour: ${winAmount.toFixed(2)}</div>

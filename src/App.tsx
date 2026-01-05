@@ -30,6 +30,7 @@ const App: React.FC = () => {
       const manager = buildGameManager(apiMode);
       const result = await manager.startRound(key, bet);
       if (result.betAccepted) {
+        console.log('Target word:', manager.getTargetWord());
         setGameManager(manager);
         setUserKey(key);
         setBetAmount(bet);
