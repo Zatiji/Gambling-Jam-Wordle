@@ -342,7 +342,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
           />
         </div>
 
-        <div style={{ marginTop: '20px' }}>
+        <div style={{ marginTop: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <VirtualKeyboard onKeyPress={handleKeyPress} letterStatuses={letterStatuses} />
         </div>
       </div>
