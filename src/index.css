@@ -51,6 +51,17 @@ body {
     gap: 20px;
 }
 
+.game-broke {
+    color: var(--neon-red);
+    border: 3px solid var(--neon-red);
+    text-shadow: 0 0 12px var(--neon-red);
+    box-shadow: 0 0 14px rgba(255, 42, 109, 0.6), inset 0 0 10px rgba(255, 42, 109, 0.4);
+    padding: 18px 26px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
 h1.title {
     font-size: 4rem;
     color: var(--text-main);

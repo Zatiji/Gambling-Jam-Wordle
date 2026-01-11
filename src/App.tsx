@@ -54,6 +54,7 @@ const App: React.FC = () => {
           onPlay={handleStartGame}
           apiMode={apiMode}
           onModeChange={setApiMode}
+          gameKey={gameKey}
         />
       ) : (
         gameManager ? (
@@ -69,6 +70,7 @@ const App: React.FC = () => {
             onPlay={handleStartGame}
             apiMode={apiMode}
             onModeChange={setApiMode}
+            gameKey={gameKey}
           />
         )
       )}

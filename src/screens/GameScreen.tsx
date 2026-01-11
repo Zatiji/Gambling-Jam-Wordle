@@ -460,12 +460,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         settlementMessage={state.settlementMessage}
       />
 
-      <button 
-        onClick={onReset} 
-        style={{ position: 'absolute', bottom: '10px', right: '10px', opacity: 0.5, background: 'none', border: '1px solid #444', color: '#fff', cursor: 'pointer' }}
-      >
-        [RETOUR]
-      </button>
     </div>
   );
 };
