@@ -36,13 +36,20 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extr
   };
 
   return (
-    <div id="shop-modal">
-      <div className="modal-content">
+    <div id="shop-modal" role="dialog" aria-modal="true">
+      <div className="shop-panel">
+        <div className="shop-sign" aria-label="Shop title">
+          <div className="shop-sign-inner">
+            <span className="shop-sign-text">SHOP</span>
+          </div>
+        </div>
+
         {scannerMode ? (
-          <>
-            <h2>SCANNER</h2>
-            <p>Entre une voyelle (A, E, I, O, U, Y)</p>
-            <form className="scanner-form" onSubmit={handleScannerSubmit}>
+          <div className="shop-body">
+            <div className="shop-subtitle">SCANNER</div>
+            <div className="shop-hint">Entre une voyelle (A, E, I, O, U, Y)</div>
+
+            <form className="scanner-form shop-scanner" onSubmit={handleScannerSubmit}>
               <input
                 className="scanner-input"
                 type="text"
@@ -51,50 +58,66 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extr
                 maxLength={1}
                 autoFocus
               />
-              <button type="submit" className="scanner-submit">VALIDER</button>
+              <button type="submit" className="shop-buy-btn scanner-submit">VALIDER</button>
             </form>
-            <button className="close-shop" onClick={onClose}>FERMER</button>
-          </>
+
+            <button className="close-shop shop-close" onClick={onClose}>
+              FERMER
+            </button>
+          </div>
         ) : (
-          <>
-            <h2>SHOP</h2>
-            <p>Achetez des indices ici...</p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '20px 0', flexWrap: 'wrap' }}>
-              <button 
-                style={{ border: '1px solid #fff', padding: '10px', background: 'transparent', color: '#fff', cursor: 'pointer' }}
-                onClick={handleScannerClick}
-              >
-                SCANNER ({costs.LEVEL_1}$)
-              </button>
-              <button 
-                style={{ border: '1px solid #fff', padding: '10px', background: 'transparent', color: '#fff', cursor: 'pointer' }}
-                onClick={() => {
-                  onPurchase('lucky_shot', costs.LEVEL_2);
-                  onClose();
-                }}
-              >
-                SNIPER ({costs.LEVEL_2}$)
-              </button>
-              <button 
-                style={{
-                  border: '1px solid #fff',
-                  padding: '10px',
-                  background: 'transparent',
-                  color: '#fff',
-                  cursor: extraLifeAvailable ? 'pointer' : 'not-allowed',
-                  opacity: extraLifeAvailable ? 1 : 0.4,
-                }}
-                onClick={() => {
-                  onPurchase('extra_life', costs.LEVEL_3);
-                  onClose();
-                }}
-                disabled={!extraLifeAvailable}
-              >
-                EXTRA LIFE ({costs.LEVEL_3}$)
-              </button>
+          <div className="shop-body">
+
+            <div className="shop-list">
+              <div className="shop-row">
+                <div className="shop-item">
+                  <span className="shop-item-name">SCANNER</span>
+                  <span className="shop-item-price">- {costs.LEVEL_1}$</span>
+                </div>
+                <button className="shop-buy-btn" onClick={handleScannerClick}>
+                  BUY
+                </button>
+              </div>
+
+              <div className="shop-row">
+                <div className="shop-item">
+                  <span className="shop-item-name">LUCKY SHOT</span>
+                  <span className="shop-item-price">- {costs.LEVEL_2}$</span>
+                </div>
+                <button
+                  className="shop-buy-btn"
+                  onClick={() => {
+                    onPurchase('lucky_shot', costs.LEVEL_2);
+                    onClose();
+                  }}
+                >
+                  BUY
+                </button>
+              </div>
+
+              <div className="shop-row">
+                <div className="shop-item">
+                  <span className="shop-item-name">EXTRA LIFE</span>
+                  <span className="shop-item-price">- {costs.LEVEL_3}$</span>
+                </div>
+                <button
+                  className={`shop-buy-btn ${!extraLifeAvailable ? 'is-disabled' : ''}`}
+                  onClick={() => {
+                    onPurchase('extra_life', costs.LEVEL_3);
+                    onClose();
+                  }}
+                  disabled={!extraLifeAvailable}
+                  aria-disabled={!extraLifeAvailable}
+                >
+                  BUY
+                </button>
+              </div>
             </div>
-            <button className="close-shop" onClick={onClose}>FERMER</button>
-          </>
+
+            <button className="close-shop shop-close" onClick={onClose}>
+              FERMER
+            </button>
+          </div>
         )}
       </div>
     </div>
