@@ -1,20 +1,20 @@
 export const GAME_CONFIG = {
   BETTING: {
     MIN_BET: 10,
-    MAX_BET: 5000,
+    MAX_BET: 50,
   },
   PAYOUT_MULTIPLIERS: {
-    1: 50,  // Victoire en 1 coup
-    2: 5,   // Victoire en 2 coups
-    3: 2,   // Victoire en 3 coups
+    1: 25,  // Victoire en 1 coup
+    2: 2,   // Victoire en 2 coups
+    3: 1.5, // Victoire en 3 coups
     4: 0.5, // Victoire en 4 coups
     5: 0.5, // Victoire en 5 coups (extra life)
   } as Record<number, number>,
   POWERUPS: {
     COSTS: {
-      LEVEL_1: 50,  // Ex: Scanner
-      LEVEL_2: 100, // Ex: Sniper
-      LEVEL_3: 200, // Ex: Extra Life
+      LEVEL_1: 75,  // Ex: Scanner
+      LEVEL_2: 150, // Ex: Sniper
+      LEVEL_3: 300, // Ex: Extra Life
     },
     // Mapping des types vers les niveaux de coût par défaut
     TIERS: {

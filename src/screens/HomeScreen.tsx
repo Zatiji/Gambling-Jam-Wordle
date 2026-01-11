@@ -8,7 +8,7 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay, apiMode, onModeChange }) => {
   const [userKey, setUserKey] = useState('');
-  const [betAmount, setBetAmount] = useState(10);
+  const [betAmount, setBetAmount] = useState(25);
 
   const handlePlay = () => {
     if (!userKey || betAmount <= 0) {
@@ -25,7 +25,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onPlay, apiMode, onModeChange }
       <div className="input-group">
         <label>CLÉ UTILISATEUR</label>
         <input 
-          type="text" 
+          type="password" 
           value={userKey} 
           onChange={(e) => setUserKey(e.target.value)}
           placeholder="Ex: USER_123" 

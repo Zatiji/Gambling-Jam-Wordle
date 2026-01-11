@@ -458,7 +458,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         onFinalize={onReset}
         isFinalizing={state.isFinalizing}
         settlementMessage={state.settlementMessage}
-        isSettled={state.isSettled}
       />
 
       <button 

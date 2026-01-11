@@ -16,6 +16,7 @@ export default defineConfig({
         target: 'https://api.gamblingjamaeglo.dev',
         changeOrigin: true,
         secure: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

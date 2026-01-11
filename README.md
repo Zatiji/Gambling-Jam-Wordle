@@ -1,76 +1,99 @@
 # Gambling Jam Wordle
 
-A high-stakes Wordle variant built for the Gambling Jam. This project combines the classic word-guessing game with a persistent economy system where players bet real (simulated) currency on their performance.
+A high-stakes Wordle variant built for the Gambling Jam. The game pairs classic word guessing with a wallet-backed betting loop, power-ups, and a deferred settlement transaction model.
 
 ## Architecture & Design
 
-This project is built with **TypeScript** and trieed its beast to be clean coded. (Its not that pretty for now)
+This project is built with TypeScript + React. The app is organized around a UI flow (home -> game -> results) and a core game manager that coordinates logic, economy, and API calls.
 
-### Key Components
+### Key Modules
 
-- **`GameManager` (Orchestrator-ish):** The central hub that coordinates the game. It uses Dependency Injection (DIP) to remain decoupled from specific implementations.
-- **`WordleEngine` (Logic):** A pure logic engine handling word validation, letter comparisons, and win/loss states. It knows nothing about money.
-- **`EconomySystem` (Accounting):** Tracks the session's financial state (bets placed, power-ups purchased, winnings). It calculates the "Net Result" at the end of a game.
-- **`GamblingApi` (Infrastructure):** A service dedicated to communicating with the external `api.gamblingjamaeglo.dev`. It handles the real money transactions.
-- **Power-Ups (Strategy Pattern):**
-  - **Scanner:** Checks for vowel presence.
-  - **Lucky Shot:** Gambles on revealing a random letter (risk/reward).
-  - **Extra Life:** Buys an additional attempt.
+- `GameManager` (orchestrator): Starts rounds, validates bets, handles guesses, and triggers final settlement.
+- `WordleEngine` (logic): Pure word validation, letter comparison, and win/loss states.
+- `EconomySystem` (accounting): Tracks bet, power-up costs, payouts, and net result.
+- `GamblingApi` (infrastructure): Wallet lookup and money exchange with the Gambling Jam API.
+- Power-ups (strategy): `Scanner`, `Lucky Shot`, `Extra Life`.
 
----
+### UI Flow
 
-## Game Flow & API Workflow
+- `HomeScreen`: user key, bet amount, API mode selection.
+- `GameScreen`: gameplay, power-up shop, live stats, and result modal.
+- `ResultModal`: shows outcome, totals, and settlement message.
 
-To ensure fairness and stability, transactions are processed using a **"Deferred Settlement"** model.
+## Game Flow (Deferred Settlement)
 
-1.  **Start Round (User Key + Betting):**
-    - The player enters their **User Key** (required).
-    - The player chooses a bet amount (e.g., $100).
-    - **API Check:** The game checks the user's wallet balance via `GET /portefeuille`.
-    - If funds are sufficient, the game starts. **No money is taken yet.**
-    - *Local State:* The economy system records a "debt" of $100.
+To minimize API calls, money is settled once per round.
 
-2.  **Gameplay & Power-Ups:**
-    - The player guesses words.
-    - **Buying Power-Ups:** If a player buys a hint ($50), the cost is added to their local debt. No API call is made instantly.
+1. Start round:
+   - User enters key + bet.
+   - API wallet balance is checked (`GET /portefeuille`).
+   - If valid, the round starts and the bet is recorded locally.
+2. During play:
+   - Power-ups add to local costs (no immediate API call).
+3. End of round:
+   - Net result = winnings - (bet + power-ups).
+   - A single transfer is executed via `POST /echangerArgent`.
 
-3.  **End of Game (Settlement):**
-    - The game calculates the **Net Result**: `(Winnings - Total Bets - Total PowerUp Costs)`.
-    - **If Net Result > 0 (Profit):** The **Game pays the User** via `POST /echangerArgent`.
-    - **If Net Result < 0 (Loss):** The **User pays the Game** via `POST /echangerArgent`.
-    - **If Net Result = 0:** No transaction is made.
+## API Modes
 
-This approach minimizes API calls to **one per game**, reducing latency and the risk of partial failures.
+The UI supports three runtime modes:
 
----
+- Mock: all API calls are mocked.
+- Hybrid: real wallet reads, mocked money transfers.
+- Live: full API integration.
 
-## 🛠 Setup & Configuration
+## Configuration
 
-### Prerequisites
+Runtime game tuning lives in `src/data/GameConfig.ts`:
+- Bet limits
+- Payout multipliers
+- Power-up costs and tiers
+
+Game keys:
+- Web: `VITE_GAME_KEY` (Vite env)
+- CLI: `GAME_KEY` (node env)
+
+## Setup
+
+Prerequisites:
 - Node.js (v18+)
-- A valid Game Key from the Gambling Jam API.
+- A valid Game Key from the Gambling Jam API (for live mode)
 
-### Installation
+Install:
 
 ```bash
 npm install
 ```
 
-### Configuration
-Edit `src/data/GameConfig.ts` to adjust:
-- Minimum/Maximum bets.
-- Payout multipliers.
-- Power-up costs.
-
-### Running the CLI
-To test the game logic in your terminal:
+## Scripts
 
 ```bash
-# Run the CLI
+# Web UI
+npm run dev
 npm run build
-npm start # to test the game with real keys
+npm run preview
 
-npm start --mock # To test the game in dev mode
+# CLI
+npm run build:cli
+npm run start:cli
+
+# Lint
+npm run lint
 ```
 
-*Note: The CLI prompts for a User Key and bet amount before each round.*
+## CLI Usage
+
+The CLI runs a single round in the terminal and supports power-up commands.
+
+```bash
+# Live API (requires GAME_KEY)
+GAME_KEY=YOUR_KEY npm run start:cli
+
+# Mock API
+GAME_KEY=TEST_KEY npm run start:cli -- --mock
+```
+
+Power-up inputs:
+- `scanner` -> prompts for a vowel
+- `lucky` -> Lucky Shot
+- `life` -> Extra Life

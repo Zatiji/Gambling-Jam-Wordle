@@ -20,7 +20,6 @@ interface ResultModalProps {
   onFinalize: () => void;
   isFinalizing: boolean;
   settlementMessage?: string;
-  isSettled: boolean;
 }
 
 const POWERUP_LABELS: Record<PowerUpType, string> = {
@@ -43,7 +42,6 @@ const ResultModal: React.FC<ResultModalProps> = ({
   onFinalize,
   isFinalizing,
   settlementMessage,
-  isSettled,
 }) => {
   if (!isOpen) return null;
 
