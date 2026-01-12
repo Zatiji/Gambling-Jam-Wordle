@@ -196,7 +196,7 @@ export default class GameManager {
       const response = await this.api.exchangeMoney({
         source: this.api.getGameKey(), 
         destination: userKey,
-        montant: netResult,
+        montant: Math.floor(netResult),
       });
       return `You won ${netResult}! ${response.message}`;
     } else {
@@ -204,7 +204,7 @@ export default class GameManager {
       const response = await this.api.exchangeMoney({
         source: userKey,
         destination: this.api.getGameKey(), 
-        montant: amountToPay,
+        montant: Math.floor(amountToPay),
       });
       return `You lost ${amountToPay}. ${response.message}`;
     }
