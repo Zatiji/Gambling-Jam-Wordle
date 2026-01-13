@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useReducer, useRef } from 'react';
+import React, { useEffect, useCallback, useReducer, useRef, useState } from 'react';
 import StatsPanel from '../components/StatsPanel';
 import WordleGrid, { TileData, LetterStatus } from '../components/WordleGrid';
 import VirtualKeyboard from '../components/VirtualKeyboard';
@@ -58,6 +58,9 @@ type GameScreenAction =
   | { type: 'set_settled'; isSettled: boolean }
   | { type: 'open_shop' }
   | { type: 'close_shop' };
+
+const GUESS_TIME_MS = 90_000;
+const WARNING_TIME_MS = 20_000;
 
 const initialState: GameScreenState = {
   guesses: [],
@@ -168,10 +171,29 @@ function gameScreenReducer(state: GameScreenState, action: GameScreenAction): Ga
 
 const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, gameManager, onReset }) => {
   const [state, dispatch] = useReducer(gameScreenReducer, initialState);
+  const [timeLeftMs, setTimeLeftMs] = useState(GUESS_TIME_MS);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const winAnimationRef = useRef<{ rowIndex: number; isJackpot: boolean } | null>(null);
   const resultTimerRef = useRef<number | null>(null);
   const revealTimersRef = useRef<number[]>([]);
+  const countdownRef = useRef<number | null>(null);
+  const deadlineRef = useRef<number>(Date.now() + GUESS_TIME_MS);
+  const timeoutLockRef = useRef(false);
+  const latestStateRef = useRef({
+    currentGuess: '',
+    status: 'playing' as GameStatus,
+    isRevealing: false,
+    isShopOpen: false,
+  });
+
+  useEffect(() => {
+    latestStateRef.current = {
+      currentGuess: state.currentGuess,
+      status: state.status,
+      isRevealing: state.isRevealing,
+      isShopOpen: state.isShopOpen,
+    };
+  }, [state.currentGuess, state.status, state.isRevealing, state.isShopOpen]);
 
   // Fetch balance initially
   useEffect(() => {
@@ -186,6 +208,60 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     fetchBalance();
   }, [userKey]);
 
+  const resetTimer = useCallback(() => {
+    deadlineRef.current = Date.now() + GUESS_TIME_MS;
+    setTimeLeftMs(GUESS_TIME_MS);
+  }, []);
+
+  const submitGuess = useCallback(async (guess: string) => {
+    if (state.status !== 'playing' || state.isRevealing) return;
+
+    resetTimer();
+    try {
+      const result = await gameManager.makeGuess(guess.toLowerCase());
+      const rowIndex = state.guesses.length;
+      const isJackpot = result.status === 'won' && rowIndex === 0;
+      
+      // Transform backend results to UI format
+      const newGuess: TileData[] = result.letters.map(l => ({
+        letter: l.letter.toUpperCase(),
+        status: 'empty'
+      }));
+
+      dispatch({ type: 'append_guess', guess: newGuess });
+      dispatch({ type: 'set_revealing', isRevealing: true });
+      revealTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+      revealTimersRef.current = [];
+
+      const revealDelay = 140;
+      result.letters.forEach((letter, index) => {
+        const timer = window.setTimeout(() => {
+          dispatch({ type: 'set_reveal_tile', row: rowIndex, col: index });
+          dispatch({ type: 'set_tile_status', row: rowIndex, col: index, status: letter.status as LetterStatus });
+          if (index === result.letters.length - 1) {
+            dispatch({ type: 'set_status', status: result.status as GameStatus });
+            dispatch({ type: 'set_revealing', isRevealing: false });
+            if (result.status !== 'playing') {
+              dispatch({
+                type: 'set_message',
+                message: result.transactionMessage || `Partie terminée: ${result.status}`
+              });
+              if (result.status === 'won') {
+                winAnimationRef.current = { rowIndex, isJackpot };
+                dispatch({ type: 'set_jackpot', isJackpot });
+              } else {
+                dispatch({ type: 'set_jackpot', isJackpot: false });
+              }
+            }
+          }
+        }, index * revealDelay);
+        revealTimersRef.current.push(timer);
+      });
+    } catch (e) {
+      dispatch({ type: 'set_message', message: (e as Error).message });
+    }
+  }, [gameManager, resetTimer, state.guesses.length, state.isRevealing, state.status]);
+
   const handleKeyPress = useCallback(async (key: string) => {
     if (state.status !== 'playing' || state.isRevealing) return;
 
@@ -195,49 +271,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         return;
       }
 
-      try {
-        const result = await gameManager.makeGuess(state.currentGuess.toLowerCase());
-        const rowIndex = state.guesses.length;
-        const isJackpot = result.status === 'won' && rowIndex === 0;
-        
-        // Transform backend results to UI format
-        const newGuess: TileData[] = result.letters.map(l => ({
-          letter: l.letter.toUpperCase(),
-          status: 'empty'
-        }));
-
-        dispatch({ type: 'append_guess', guess: newGuess });
-        dispatch({ type: 'set_revealing', isRevealing: true });
-        revealTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-        revealTimersRef.current = [];
-
-        const revealDelay = 140;
-        result.letters.forEach((letter, index) => {
-          const timer = window.setTimeout(() => {
-            dispatch({ type: 'set_reveal_tile', row: rowIndex, col: index });
-            dispatch({ type: 'set_tile_status', row: rowIndex, col: index, status: letter.status as LetterStatus });
-            if (index === result.letters.length - 1) {
-              dispatch({ type: 'set_status', status: result.status as GameStatus });
-              dispatch({ type: 'set_revealing', isRevealing: false });
-              if (result.status !== 'playing') {
-                dispatch({
-                  type: 'set_message',
-                  message: result.transactionMessage || `Partie terminée: ${result.status}`
-                });
-                if (result.status === 'won') {
-                  winAnimationRef.current = { rowIndex, isJackpot };
-                  dispatch({ type: 'set_jackpot', isJackpot });
-                } else {
-                  dispatch({ type: 'set_jackpot', isJackpot: false });
-                }
-              }
-            }
-          }, index * revealDelay);
-          revealTimersRef.current.push(timer);
-        });
-      } catch (e) {
-        dispatch({ type: 'set_message', message: (e as Error).message });
-      }
+      await submitGuess(state.currentGuess);
     } else if (key === 'DEL') {
       dispatch({ type: 'set_current_guess', guess: state.currentGuess.slice(0, -1) });
     } else if (/^[A-Z]$/.test(key)) {
@@ -246,7 +280,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
         dispatch({ type: 'set_current_guess', guess: state.currentGuess + key });
       }
     }
-  }, [state.currentGuess, state.status, state.isRevealing, state.guesses.length]);
+  }, [state.currentGuess, state.status, state.isRevealing, state.guesses.length, submitGuess]);
 
   // Listen to physical keyboard
   useEffect(() => {
@@ -266,6 +300,56 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       revealTimersRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    if (state.status !== 'playing' || state.isRevealing) {
+      if (countdownRef.current) {
+        window.clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+      return;
+    }
+
+    if (countdownRef.current) {
+      window.clearInterval(countdownRef.current);
+    }
+
+    countdownRef.current = window.setInterval(() => {
+      const remaining = Math.max(0, deadlineRef.current - Date.now());
+      setTimeLeftMs(remaining);
+      if (remaining <= 0) {
+        if (countdownRef.current) {
+          window.clearInterval(countdownRef.current);
+          countdownRef.current = null;
+        }
+        if (timeoutLockRef.current) return;
+        timeoutLockRef.current = true;
+        const latest = latestStateRef.current;
+        if (latest.status === 'playing' && !latest.isRevealing) {
+          if (latest.isShopOpen) {
+            dispatch({ type: 'close_shop' });
+          }
+          const baseGuess = latest.currentGuess.toUpperCase();
+          let autoGuess = baseGuess.slice(0, 5);
+          while (autoGuess.length < 5) {
+            autoGuess += String.fromCharCode(65 + Math.floor(Math.random() * 26));
+          }
+          submitGuess(autoGuess).finally(() => {
+            timeoutLockRef.current = false;
+          });
+        } else {
+          timeoutLockRef.current = false;
+        }
+      }
+    }, 200);
+
+    return () => {
+      if (countdownRef.current) {
+        window.clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  }, [state.isRevealing, state.status, submitGuess]);
 
   useEffect(() => {
     if (state.status !== 'won' || !winAnimationRef.current) return;
@@ -408,6 +492,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
     }
   };
 
+  const totalSeconds = Math.max(0, Math.ceil(timeLeftMs / 1000));
+  const displayMinutes = Math.floor(totalSeconds / 60);
+  const displaySeconds = totalSeconds % 60;
+  const displayTime = `${displayMinutes}:${displaySeconds.toString().padStart(2, '0')}`;
+
   return (
     <div id="game-screen">
       <StatsPanel 
@@ -431,6 +520,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
             revealTile={state.revealTile}
           />
         </div>
+        {state.status === 'playing' && !state.isRevealing && timeLeftMs <= WARNING_TIME_MS ? (
+          <div className="guess-timer" aria-live="polite">
+            <span className="guess-timer-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" role="img" focusable="false">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M12 7v5l3 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="guess-timer-text">{displayTime}</span>
+          </div>
+        ) : null}
 
         <div style={{ marginTop: 'auto', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <VirtualKeyboard onKeyPress={handleKeyPress} letterStatuses={letterStatuses} />
