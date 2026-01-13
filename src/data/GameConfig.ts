@@ -12,9 +12,9 @@ export const GAME_CONFIG = {
   } as Record<number, number>,
   POWERUPS: {
     COSTS: {
-      LEVEL_1: 75,  // Ex: Scanner
-      LEVEL_2: 150, // Ex: Sniper
-      LEVEL_3: 300, // Ex: Extra Life
+      LEVEL_1: 40,  // Ex: Scanner
+      LEVEL_2: 90, // Ex: Lucky Shot
+      LEVEL_3: 130, // Ex: Extra Life
     },
     // Mapping des types vers les niveaux de coût par défaut
     TIERS: {

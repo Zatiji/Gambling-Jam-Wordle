@@ -33,6 +33,7 @@ export default class GameManager {
   private readonly api: GamblingApi;
   private currentUserKey: string | null = null;
   private transactionFinalized = false;
+  private firstAttemptMultiplierOverride: number | null = null;
 
   constructor(
     economy: EconomySystem,
@@ -52,6 +53,7 @@ export default class GameManager {
     this.ensureNoActiveRound();
     this.currentUserKey = null;
     this.transactionFinalized = false;
+    this.firstAttemptMultiplierOverride = null;
 
     this.economy.reset();
 
@@ -110,6 +112,9 @@ export default class GameManager {
   }
 
   getPayoutMultiplier(attemptNumber: number): number {
+    if (attemptNumber === 1 && this.firstAttemptMultiplierOverride !== null) {
+      return this.firstAttemptMultiplierOverride;
+    }
     return this.economy.calculatePayout(attemptNumber);
   }
 
@@ -125,7 +130,7 @@ export default class GameManager {
 
     if (status === "won" || status === "lost") {
       if (status === "won") {
-        const multiplier = this.economy.calculatePayout(this.engine.getAttempts());
+        const multiplier = this.getPayoutMultiplier(this.engine.getAttempts());
         payout = this.economy.recordWin(multiplier);
       }
     }
@@ -171,6 +176,11 @@ export default class GameManager {
     }
 
     const executionResult = powerUp.execute(this.engine, currentGuess);
+    if (type === "scanner") {
+      this.firstAttemptMultiplierOverride = Math.min(this.firstAttemptMultiplierOverride ?? Infinity, 7);
+    } else if (type === "lucky_shot") {
+      this.firstAttemptMultiplierOverride = Math.min(this.firstAttemptMultiplierOverride ?? Infinity, 5);
+    }
 
     return {
       success: true,

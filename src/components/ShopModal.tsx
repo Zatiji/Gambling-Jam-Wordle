@@ -72,6 +72,9 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extr
               <div className="shop-row">
                 <div className="shop-item">
                   <span className="shop-item-name">SCANNER</span>
+                  <div className="shop-tooltip" role="tooltip">
+                    Scanne une voyelle et indique si elle est dans le mot.
+                  </div>
                   <span className="shop-item-price">- {costs.LEVEL_1}$</span>
                 </div>
                 <button className="shop-buy-btn" onClick={handleScannerClick}>
@@ -82,6 +85,9 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extr
               <div className="shop-row">
                 <div className="shop-item">
                   <span className="shop-item-name">LUCKY SHOT</span>
+                  <div className="shop-tooltip" role="tooltip">
+                    Revele une lettre a une position aleatoire du mot.
+                  </div>
                   <span className="shop-item-price">- {costs.LEVEL_2}$</span>
                 </div>
                 <button
@@ -98,6 +104,9 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose, onPurchase, extr
               <div className="shop-row">
                 <div className="shop-item">
                   <span className="shop-item-name">EXTRA LIFE</span>
+                  <div className="shop-tooltip" role="tooltip">
+                    Ajoute une tentative supplementaire pour cette partie.
+                  </div>
                   <span className="shop-item-price">- {costs.LEVEL_3}$</span>
                 </div>
                 <button

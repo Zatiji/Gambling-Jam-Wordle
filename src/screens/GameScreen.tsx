@@ -507,7 +507,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ userKey, bet, maxAttempts, game
       />
 
       <div className="right-panel">
-        <div style={{ color: 'var(--neon-blue)', marginBottom: '10px', height: '20px' }}>
+        <div className={`game-message ${state.message ? 'is-visible' : ''}`} aria-live="polite">
           {state.message}
         </div>
         
